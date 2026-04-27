@@ -1,6 +1,14 @@
 ﻿# Galactic-Fleet-Command
 Take home test for Arrowhead
 
+## Design Notes
+
+C# was chosen for this implementation due to its strong support for web APIs, background processing, and in-memory data structures, which align well with the requirements of the assignment.
+
+The initial C# structure mirrors the provided TypeScript starter rather than introducing additional architectural layers up front.
+
+The fleet model was extended with `shipCount` and `fuelRequired` because those fields are required by the assignment but were not present in the starter boilerplate.
+
 ## Implementation Approach
 
 ### 1. Convert starter boilerplate to C# and extend the fleet model
