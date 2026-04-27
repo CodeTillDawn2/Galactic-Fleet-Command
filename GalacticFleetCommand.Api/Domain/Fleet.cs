@@ -63,6 +63,12 @@ public class Fleet : IVersionedEntity
         TransitionTo(FleetState.Deployed);
     }
 
+    public void Dock()
+    {
+        EnsureTransition(FleetState.Deployed, FleetState.Docked);
+        TransitionTo(FleetState.Docked);
+    }
+
     private void EnsureTransition(FleetState expectedCurrentState, FleetState attemptedState)
     {
         if (State != expectedCurrentState)

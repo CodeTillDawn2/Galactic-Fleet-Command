@@ -3,5 +3,6 @@
 public enum CommandType
 {
     PrepareFleetCommand,
-    DeployFleetCommand
+    DeployFleetCommand,
+    DockFleetCommand
 }

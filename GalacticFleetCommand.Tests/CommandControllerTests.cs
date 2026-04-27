@@ -163,4 +163,31 @@ public class CommandControllerTests
             service,
             NullLogger<CommandController>.Instance);
     }
+
+    [Fact]
+    public async Task CreateDockFleetCommand_WithValidFleet_CreatesQueuedCommand()
+    {
+        var fleet = new Fleet
+        {
+            Id = Guid.NewGuid().ToString(),
+            Name = "Test Fleet",
+            ShipCount = 5,
+            FuelRequired = 100
+        };
+
+        fleetRepository.Create(fleet);
+
+        var service = new CommandService(commandRepository, fleetRepository, queue);
+
+        var response = await service.CreateCommandAsync(new CreateCommandRequest
+        {
+            Type = CommandType.DockFleetCommand,
+            FleetId = fleet.Id
+        });
+
+        Assert.False(string.IsNullOrWhiteSpace(response.Id));
+        Assert.Equal(CommandType.DockFleetCommand, response.Type);
+        Assert.Equal(CommandStatus.Queued, response.Status);
+        Assert.Equal(fleet.Id, response.FleetId);
+    }
 }

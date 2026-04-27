@@ -37,9 +37,11 @@ public class CommandProcessor : ICommandProcessor
                 case CommandType.PrepareFleetCommand:
                     HandlePrepareFleet(command);
                     break;
-
                 case CommandType.DeployFleetCommand:
                     HandleDeployFleet(command);
+                    break;
+                case CommandType.DockFleetCommand:
+                    HandleDockFleet(command);
                     break;
                 default:
                     throw new InvalidOperationException($"Unknown command type {command.Type}");
@@ -131,6 +133,27 @@ public class CommandProcessor : ICommandProcessor
         });
     }
 
+    private void HandleDockFleet(Command command)
+    {
+        var fleetId = GetFleetId(command);
+        var fleet = fleetRepository.GetOrThrow(fleetId);
+
+        fleetRepository.Update(fleet.Id, fleet.Version, current =>
+        {
+            current.Dock();
+            return current;
+        });
+
+        var pool = resourcePoolRepository.GetByType(ResourceType.Fuel)
+            ?? throw new InvalidOperationException("Fuel pool not configured");
+
+        resourcePoolRepository.Update(pool.Id, pool.Version, current =>
+        {
+            current.Reserved = Math.Max(0, current.Reserved - fleet.FuelRequired);
+            return current;
+        });
+    }
+
     private void MarkProcessing(string commandId)
     {
         var command = commandRepository.GetOrThrow(commandId);
@@ -165,5 +188,18 @@ public class CommandProcessor : ICommandProcessor
             current.FailureReason = failureReason;
             return current;
         });
+    }
+
+    private static string GetFleetId(Command command)
+    {
+        if (!command.Payload.TryGetValue(FleetIdPayloadKey, out var fleetIdValue))
+            throw new InvalidOperationException("Missing fleetId");
+
+        var fleetId = fleetIdValue?.ToString();
+
+        if (string.IsNullOrWhiteSpace(fleetId))
+            throw new InvalidOperationException("Invalid fleetId");
+
+        return fleetId;
     }
 }

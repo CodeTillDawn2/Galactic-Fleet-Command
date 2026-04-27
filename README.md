@@ -53,6 +53,10 @@ Recorded transition history inside the Fleet aggregate so lifecycle changes rema
 
 Exposed transition history through the existing fleet response rather than adding a separate endpoint, keeping lifecycle inspection part of the fleet resource.
 
+Added DockFleetCommand to complete the fleet lifecycle loop and release reserved resources when a deployed fleet returns to dock.
+
+Fuel release is handled as part of command execution so resource accounting stays tied to lifecycle changes.
+
 ## Implementation Approach
 
 ### 1. Convert starter boilerplate to C# and extend the fleet model
@@ -148,6 +152,16 @@ Resource reservation under concurrent conditions
 One end-to-end flow from API request to command processing to fleet state change  
 DeployFleetCommand success and failure cases  
 Fleet transition history recording
+
+13. Add DockFleetCommand
+
+Implement a docking command that transitions fleets from Deployed back to Docked and releases reserved fuel back to the shared resource pool.
+
+Workflow:
+
+Deployed -> Docked
+Return fleet fuel requirement to shared fuel pool
+Record transition history
 
 
 ## Future Improvements
