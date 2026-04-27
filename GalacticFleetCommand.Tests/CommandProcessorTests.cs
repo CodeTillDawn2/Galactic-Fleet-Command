@@ -555,4 +555,63 @@ public class CommandProcessorTests
 
         Assert.Equal(CommandStatus.Failed, updatedCommand.Status);
     }
+
+    [Fact]
+    public async Task ProcessAsync_PrepareFleetCommand_RecordsTransitionHistory()
+    {
+        var commandRepository = new InMemoryCommandRepository();
+        var fleetRepository = new InMemoryFleetRepository();
+        var resourcePoolRepository = new InMemoryResourcePoolRepository();
+
+        var resourcePool = new ResourcePool
+        {
+            Id = Guid.NewGuid().ToString(),
+            ResourceType = ResourceType.Fuel,
+            Total = 100,
+            Reserved = 0
+        };
+
+        resourcePoolRepository.Create(resourcePool);
+
+        var fleet = new Fleet
+        {
+            Id = Guid.NewGuid().ToString(),
+            Name = "Test Fleet",
+            ShipCount = 1,
+            FuelRequired = 10
+        };
+
+        fleetRepository.Create(fleet);
+
+        var command = new Command
+        {
+            Id = Guid.NewGuid().ToString(),
+            Type = CommandType.PrepareFleetCommand,
+            Status = CommandStatus.Queued,
+            Payload = new Dictionary<string, object?>
+            {
+                ["fleetId"] = fleet.Id
+            }
+        };
+
+        commandRepository.Create(command);
+
+        var processor = new CommandProcessor(
+            commandRepository,
+            fleetRepository,
+            resourcePoolRepository,
+            NullLogger<CommandProcessor>.Instance);
+
+        await processor.ProcessAsync(command.Id, CancellationToken.None);
+
+        var updatedFleet = fleetRepository.GetOrThrow(fleet.Id);
+
+        Assert.Equal(2, updatedFleet.Transitions.Count);
+
+        Assert.Equal(FleetState.Docked, updatedFleet.Transitions[0].From);
+        Assert.Equal(FleetState.Preparing, updatedFleet.Transitions[0].To);
+
+        Assert.Equal(FleetState.Preparing, updatedFleet.Transitions[1].From);
+        Assert.Equal(FleetState.Ready, updatedFleet.Transitions[1].To);
+    }
 }

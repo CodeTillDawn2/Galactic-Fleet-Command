@@ -49,6 +49,10 @@ Replaced command type strings with a `CommandType` enum so command creation, dis
 
 Reused the existing command processing pipeline for deployment, avoiding a separate execution path for the new command type.
 
+Recorded transition history inside the Fleet aggregate so lifecycle changes remain tied to the state transitions that produce them.
+
+Exposed transition history through the existing fleet response rather than adding a separate endpoint, keeping lifecycle inspection part of the fleet resource.
+
 ## Implementation Approach
 
 ### 1. Convert starter boilerplate to C# and extend the fleet model

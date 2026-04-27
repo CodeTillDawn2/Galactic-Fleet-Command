@@ -129,4 +129,23 @@ public class CommandServiceTests
 
         Assert.Throws<NotFoundException>(() => service.Get("missing-command"));
     }
+
+    [Fact]
+    public void BeginPreparation_RecordsTransitionHistory()
+    {
+        var fleet = new Fleet
+        {
+            Id = Guid.NewGuid().ToString(),
+            Name = "Test Fleet",
+            ShipCount = 1,
+            FuelRequired = 10
+        };
+
+        fleet.BeginPreparation();
+
+        Assert.Single(fleet.Transitions);
+        Assert.Equal(FleetState.Docked, fleet.Transitions[0].From);
+        Assert.Equal(FleetState.Preparing, fleet.Transitions[0].To);
+        Assert.True(fleet.Transitions[0].OccurredAtUtc <= DateTime.UtcNow);
+    }
 }

@@ -29,4 +29,9 @@ public class FleetResponse
     /// Current lifecycle state of the fleet.
     /// </summary>
     public required string State { get; init; }
+
+    /// <summary>
+    /// Lifecycle state transitions recorded for the fleet.
+    /// </summary>
+    public IReadOnlyList<FleetTransitionResponse> Transitions { get; init; } = [];
 }

@@ -93,7 +93,15 @@ public class FleetService
             Name = fleet.Name,
             ShipCount = fleet.ShipCount,
             FuelRequired = fleet.FuelRequired,
-            State = fleet.State.ToString()
+            State = fleet.State.ToString(),
+            Transitions = fleet.Transitions
+                .Select(transition => new FleetTransitionResponse
+                {
+                    From = transition.From.ToString(),
+                    To = transition.To.ToString(),
+                    OccurredAtUtc = transition.OccurredAtUtc
+                })
+                .ToList()
         };
     }
 }

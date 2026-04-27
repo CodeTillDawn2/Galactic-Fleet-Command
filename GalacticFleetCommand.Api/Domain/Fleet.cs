@@ -34,28 +34,33 @@ public class Fleet : IVersionedEntity
 
     public FleetState State { get; private set; } = FleetState.Docked;
 
+    /// <summary>
+    /// Recorded lifecycle state transitions for this fleet.
+    /// </summary>
+    public List<FleetStateTransition> Transitions { get; } = [];
+
     public void BeginPreparation()
     {
         EnsureTransition(FleetState.Docked, FleetState.Preparing);
-        State = FleetState.Preparing;
+        TransitionTo(FleetState.Preparing);
     }
 
     public void MarkReady()
     {
         EnsureTransition(FleetState.Preparing, FleetState.Ready);
-        State = FleetState.Ready;
+        TransitionTo(FleetState.Ready);
     }
 
     public void FailPreparation()
     {
         EnsureTransition(FleetState.Preparing, FleetState.FailedPreparation);
-        State = FleetState.FailedPreparation;
+        TransitionTo(FleetState.FailedPreparation);
     }
 
     public void Deploy()
     {
         EnsureTransition(FleetState.Ready, FleetState.Deployed);
-        State = FleetState.Deployed;
+        TransitionTo(FleetState.Deployed);
     }
 
     private void EnsureTransition(FleetState expectedCurrentState, FleetState attemptedState)
@@ -67,5 +72,19 @@ public class Fleet : IVersionedEntity
                 attemptedState: attemptedState,
                 expectedCurrentState: expectedCurrentState);
         }
+    }
+
+    private void TransitionTo(FleetState newState)
+    {
+        var previousState = State;
+
+        State = newState;
+
+        Transitions.Add(new FleetStateTransition
+        {
+            From = previousState,
+            To = newState,
+            OccurredAtUtc = DateTime.UtcNow
+        });
     }
 }
