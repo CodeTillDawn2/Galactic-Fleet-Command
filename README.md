@@ -13,6 +13,10 @@ Initially, Minimal APIs were used for their similarity to the provided starter, 
 
 Although the current assignment has a small API surface, the domain suggests room for additional commands, fleet operations, and resource workflows. Controllers help keep the HTTP layer organized as that surface expands.
 
+API contracts are separate from domain models so the HTTP surface can evolve independently from internal state and behavior. Clients can create or update fleet properties, while lifecycle state changes are handled through commands.
+
+Init accessors are used instead of set to ensure contract objects are only assigned during initialization, reinforcing immutability for request and response models.
+
 ## Implementation Approach
 
 ### 1. Convert starter boilerplate to C# and extend the fleet model
