@@ -1,2 +1,92 @@
-# Galactic-Fleet-Command
+﻿# Galactic-Fleet-Command
 Take home test for Arrowhead
+
+## Implementation Approach
+
+### 1. Convert starter boilerplate to C# and extend the fleet model
+
+Translate the provided TypeScript starter into C#, preserving the same core structure and behavior.
+
+Extend the starter fleet model with `shipCount` and `fuelRequired`.
+
+### 2. Organize the HTTP layer
+
+Move endpoint registration out of `Program.cs` and into endpoint modules for clean separation of concerns.
+
+Keep `Program.cs` focused on startup, dependency registration, and middleware configuration.
+
+### 3. Add API contracts
+
+Define request and response contracts for fleet and command endpoints instead of exposing domain entities directly.
+
+### 4. Add fleet API surface
+
+Implement:
+
+POST `/fleets`  
+GET `/fleets/{id}`  
+PATCH `/fleets/{id}`
+
+Include validation, expected error responses, logging, and tests.
+
+### 5. Enforce fleet lifecycle rules
+
+Centralize valid fleet transitions:
+
+Docked -> Preparing  
+Preparing -> Ready  
+Preparing -> FailedPreparation  
+Ready -> Deployed
+
+Handle invalid transitions explicitly.
+
+### 6. Add command submission API
+
+Implement:
+
+POST `/commands`  
+GET `/commands/{id}`
+
+Include validation, expected error responses, logging, and tests.
+
+### 7. Introduce asynchronous processing boundary
+
+Add an in-memory command queue and a single background worker.
+
+Treat API submission as the producer and the worker as the consumer, forming a simple event-driven processing model.
+
+### 8. Implement PrepareFleetCommand
+
+Implement the required workflow:
+
+Docked -> Preparing  
+Preparing -> Ready on successful resource reservation  
+Preparing -> FailedPreparation on failed reservation
+
+Record command failure reasons when processing fails.
+
+### 9. Add resource reservation behavior
+
+Use the shared fuel resource pool to reserve the fuel required by a fleet before it can become Ready.
+
+Handle insufficient fuel as an expected outcome.
+
+Ensure the availability check and reservation update happen atomically so fuel cannot be over-allocated.
+
+### 10. Add DeployFleetCommand
+
+Implement a deployment command that transitions fleets from Ready to Deployed.
+
+### 11. Add fleet transition history
+
+Record significant fleet state transitions so the lifecycle can be inspected after commands are processed.
+
+### 12. Add tests throughout implementation
+
+Cover:
+
+Valid and invalid fleet state transitions  
+Resource reservation under concurrent conditions  
+One end-to-end flow from API request to command processing to fleet state change  
+DeployFleetCommand success and failure cases  
+Fleet transition history recording
