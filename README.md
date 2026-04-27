@@ -37,6 +37,12 @@ Command outcomes are represented in state rather than exceptions, allowing failu
 
 Command status is treated as execution metadata and managed by the processor rather than the domain model.
 
+Resource reservation is performed within a single repository update to ensure availability checks and reservation occur atomically.
+
+Insufficient resources are treated as an expected outcome rather than an error, allowing command execution to complete with a failed preparation state.
+
+Removed duplicate PrepareFleetCommand tests to keep coverage focused in CommandProcessor tests, avoiding overlapping test suites.
+
 ## Implementation Approach
 
 ### 1. Convert starter boilerplate to C# and extend the fleet model

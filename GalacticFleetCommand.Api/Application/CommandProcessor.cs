@@ -10,15 +10,18 @@ public class CommandProcessor : ICommandProcessor
 
     private readonly ICommandRepository commandRepository;
     private readonly IFleetRepository fleetRepository;
+    private readonly IResourcePoolRepository resourcePoolRepository;
     private readonly ILogger<CommandProcessor> logger;
 
     public CommandProcessor(
         ICommandRepository commandRepository,
         IFleetRepository fleetRepository,
+        IResourcePoolRepository resourcePoolRepository,
         ILogger<CommandProcessor> logger)
     {
         this.commandRepository = commandRepository;
         this.fleetRepository = fleetRepository;
+        this.resourcePoolRepository = resourcePoolRepository;
         this.logger = logger;
     }
 
@@ -76,9 +79,33 @@ public class CommandProcessor : ICommandProcessor
 
         var preparingFleet = fleetRepository.GetOrThrow(fleet.Id);
 
-        fleetRepository.Update(preparingFleet.Id, preparingFleet.Version, current =>
+        var pool = resourcePoolRepository.GetByType(ResourceType.Fuel)
+            ?? throw new InvalidOperationException("Fuel pool not configured");
+
+        var reservationSucceeded = false;
+
+        resourcePoolRepository.Update(pool.Id, pool.Version, current =>
         {
-            current.MarkReady();
+            var available = current.Total - current.Reserved;
+
+            if (available >= preparingFleet.FuelRequired)
+            {
+                current.Reserved += preparingFleet.FuelRequired;
+                reservationSucceeded = true;
+            }
+
+            return current;
+        });
+
+        var updatedFleet = fleetRepository.GetOrThrow(preparingFleet.Id);
+
+        fleetRepository.Update(updatedFleet.Id, updatedFleet.Version, current =>
+        {
+            if (reservationSucceeded)
+                current.MarkReady();
+            else
+                current.FailPreparation();
+
             return current;
         });
     }
