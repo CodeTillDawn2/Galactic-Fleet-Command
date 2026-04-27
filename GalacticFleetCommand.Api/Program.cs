@@ -14,7 +14,18 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 builder.Services.AddSingleton<PersistenceContext>();
+
+builder.Services.AddSingleton<IFleetRepository>(provider =>
+    provider.GetRequiredService<PersistenceContext>().Fleets);
+
+builder.Services.AddSingleton<ICommandRepository>(provider =>
+    provider.GetRequiredService<PersistenceContext>().Commands);
+
+builder.Services.AddSingleton<IResourcePoolRepository>(provider =>
+    provider.GetRequiredService<PersistenceContext>().ResourcePools);
+
 builder.Services.AddScoped<FleetService>();
+builder.Services.AddScoped<CommandService>();
 
 var app = builder.Build();
 
