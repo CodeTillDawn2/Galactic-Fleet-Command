@@ -9,6 +9,10 @@ The initial C# structure mirrors the provided TypeScript starter rather than int
 
 The fleet model was extended with `shipCount` and `fuelRequired` because those fields are required by the assignment but were not present in the starter boilerplate.
 
+Initially, Minimal APIs were used for their similarity to the provided starter, but the HTTP layer was refactored to controllers to provide a more conventional and scalable structure.
+
+Although the current assignment has a small API surface, the domain suggests room for additional commands, fleet operations, and resource workflows. Controllers help keep the HTTP layer organized as that surface expands.
+
 ## Implementation Approach
 
 ### 1. Convert starter boilerplate to C# and extend the fleet model
@@ -17,17 +21,23 @@ Translate the provided TypeScript starter into C#, preserving the same core stru
 
 Extend the starter fleet model with `shipCount` and `fuelRequired`.
 
-### 2. Organize the HTTP layer
+### 2. Refactor HTTP layer to controllers and add health endpoint test
 
-Move endpoint registration out of `Program.cs` and into endpoint modules for clean separation of concerns.
+Introduce controllers to define the API surface and handle request/response concerns.
+
+This separates HTTP handling from application startup, keeping `Program.cs` focused on composition while controllers manage routing and input/output concerns.
 
 Keep `Program.cs` focused on startup, dependency registration, and middleware configuration.
 
+Move existing "health" endpoint into a dedicated controller for consistency.
+
+Implement health endpoint test to verify it returns the expected response.
+
 ### 3. Add API contracts
 
-Define request and response contracts for fleet and command endpoints instead of exposing domain entities directly.
+Define request and response contracts for controller actions instead of exposing domain entities directly.
 
-### 4. Add fleet API surface
+### 4. Add fleet controller
 
 Implement:
 
@@ -48,7 +58,7 @@ Ready -> Deployed
 
 Handle invalid transitions explicitly.
 
-### 6. Add command submission API
+### 6. Add command controller
 
 Implement:
 
