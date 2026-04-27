@@ -1,3 +1,4 @@
+using GalacticFleetCommand.Api.Application;
 using GalacticFleetCommand.Api.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -13,6 +14,7 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 builder.Services.AddSingleton<PersistenceContext>();
+builder.Services.AddScoped<FleetService>();
 
 var app = builder.Build();
 

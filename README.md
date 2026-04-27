@@ -17,6 +17,10 @@ API contracts are separate from domain models so the HTTP surface can evolve ind
 
 Init accessors are used instead of set to ensure contract objects are only assigned during initialization, reinforcing immutability for request and response models.
 
+Fleet controller actions are kept thin and delegate business behavior to `FleetService`. This keeps HTTP concerns separate from fleet creation, validation, and update rules, making the behavior easier to test and less dependent on the web framework.
+
+Controllers are responsible for request/response mapping, while the service layer operates on domain and contract models without knowledge of HTTP semantics.
+
 ## Implementation Approach
 
 ### 1. Convert starter boilerplate to C# and extend the fleet model
