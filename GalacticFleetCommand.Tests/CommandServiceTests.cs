@@ -26,13 +26,41 @@ public class CommandServiceTests
 
         var service = new CommandService(commandRepository, fleetRepository, queue);
 
-        var response = await service.CreatePrepareFleetCommandAsync(new CreatePrepareFleetCommandRequest
+        var response = await service.CreateCommandAsync(new CreateCommandRequest
         {
+            Type = CommandType.PrepareFleetCommand,
             FleetId = fleet.Id
         });
 
         Assert.False(string.IsNullOrWhiteSpace(response.Id));
-        Assert.Equal("PrepareFleetCommand", response.Type);
+        Assert.Equal(CommandType.PrepareFleetCommand, response.Type);
+        Assert.Equal(CommandStatus.Queued, response.Status);
+        Assert.Equal(fleet.Id, response.FleetId);
+    }
+
+    [Fact]
+    public async Task CreateDeployFleetCommand_WithValidFleet_CreatesQueuedCommand()
+    {
+        var fleet = new Fleet
+        {
+            Id = Guid.NewGuid().ToString(),
+            Name = "Test Fleet",
+            ShipCount = 5,
+            FuelRequired = 100
+        };
+
+        fleetRepository.Create(fleet);
+
+        var service = new CommandService(commandRepository, fleetRepository, queue);
+
+        var response = await service.CreateCommandAsync(new CreateCommandRequest
+        {
+            Type = CommandType.DeployFleetCommand,
+            FleetId = fleet.Id
+        });
+
+        Assert.False(string.IsNullOrWhiteSpace(response.Id));
+        Assert.Equal(CommandType.DeployFleetCommand, response.Type);
         Assert.Equal(CommandStatus.Queued, response.Status);
         Assert.Equal(fleet.Id, response.FleetId);
     }
@@ -43,8 +71,9 @@ public class CommandServiceTests
         var service = new CommandService(commandRepository, fleetRepository, queue);
 
         var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
-            service.CreatePrepareFleetCommandAsync(new CreatePrepareFleetCommandRequest
+            service.CreateCommandAsync(new CreateCommandRequest
             {
+                Type = CommandType.PrepareFleetCommand,
                 FleetId = ""
             }));
 
@@ -57,8 +86,9 @@ public class CommandServiceTests
         var service = new CommandService(commandRepository, fleetRepository, queue);
 
         await Assert.ThrowsAsync<NotFoundException>(() =>
-            service.CreatePrepareFleetCommandAsync(new CreatePrepareFleetCommandRequest
+            service.CreateCommandAsync(new CreateCommandRequest
             {
+                Type = CommandType.PrepareFleetCommand,
                 FleetId = "missing-fleet"
             }));
     }
@@ -78,8 +108,9 @@ public class CommandServiceTests
 
         var service = new CommandService(commandRepository, fleetRepository, queue);
 
-        var created = await service.CreatePrepareFleetCommandAsync(new CreatePrepareFleetCommandRequest
+        var created = await service.CreateCommandAsync(new CreateCommandRequest
         {
+            Type = CommandType.PrepareFleetCommand,
             FleetId = fleet.Id
         });
 

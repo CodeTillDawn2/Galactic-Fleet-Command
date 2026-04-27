@@ -30,8 +30,9 @@ public class CommandControllerTests
         var controller = CreateController();
 
         var result = await controller.Create(
-            new CreatePrepareFleetCommandRequest
+            new CreateCommandRequest
             {
+                Type = CommandType.PrepareFleetCommand,
                 FleetId = fleet.Id
             },
             CancellationToken.None);
@@ -40,7 +41,7 @@ public class CommandControllerTests
         var response = Assert.IsType<CommandResponse>(createdResult.Value);
 
         Assert.Equal(nameof(CommandController.Get), createdResult.ActionName);
-        Assert.Equal("PrepareFleetCommand", response.Type);
+        Assert.Equal(CommandType.PrepareFleetCommand, response.Type);
         Assert.Equal(CommandStatus.Queued, response.Status);
         Assert.Equal(fleet.Id, response.FleetId);
     }
@@ -51,8 +52,9 @@ public class CommandControllerTests
         var controller = CreateController();
 
         var result = await controller.Create(
-            new CreatePrepareFleetCommandRequest
+            new CreateCommandRequest
             {
+                Type = CommandType.PrepareFleetCommand,
                 FleetId = ""
             },
             CancellationToken.None);
@@ -66,8 +68,9 @@ public class CommandControllerTests
         var controller = CreateController();
 
         var result = await controller.Create(
-            new CreatePrepareFleetCommandRequest
+            new CreateCommandRequest
             {
+                Type = CommandType.PrepareFleetCommand,
                 FleetId = "missing-fleet"
             },
             CancellationToken.None);
@@ -92,8 +95,9 @@ public class CommandControllerTests
 
         var createResult = Assert.IsType<CreatedAtActionResult>(
             await controller.Create(
-                new CreatePrepareFleetCommandRequest
+                new CreateCommandRequest
                 {
+                    Type = CommandType.PrepareFleetCommand,
                     FleetId = fleet.Id
                 },
                 CancellationToken.None));
@@ -117,6 +121,38 @@ public class CommandControllerTests
         var result = controller.Get("missing-command");
 
         Assert.IsType<NotFoundResult>(result);
+    }
+
+    [Fact]
+    public async Task Create_WithDeployCommand_ReturnsCreatedCommand()
+    {
+        var fleet = new Fleet
+        {
+            Id = Guid.NewGuid().ToString(),
+            Name = "Test Fleet",
+            ShipCount = 5,
+            FuelRequired = 100
+        };
+
+        fleetRepository.Create(fleet);
+
+        var controller = CreateController();
+
+        var result = await controller.Create(
+            new CreateCommandRequest
+            {
+                Type = CommandType.DeployFleetCommand,
+                FleetId = fleet.Id
+            },
+            CancellationToken.None);
+
+        var createdResult = Assert.IsType<CreatedAtActionResult>(result);
+        var response = Assert.IsType<CommandResponse>(createdResult.Value);
+
+        Assert.Equal(nameof(CommandController.Get), createdResult.ActionName);
+        Assert.Equal(CommandType.DeployFleetCommand, response.Type);
+        Assert.Equal(CommandStatus.Queued, response.Status);
+        Assert.Equal(fleet.Id, response.FleetId);
     }
 
     private CommandController CreateController()

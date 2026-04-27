@@ -15,12 +15,17 @@ public class CommandResponse
     /// <summary>
     /// Command type.
     /// </summary>
-    public required string Type { get; init; }
+    public CommandType Type { get; init; }
 
     /// <summary>
     /// Current command processing status.
     /// </summary>
     public CommandStatus Status { get; init; }
+
+    /// <summary>
+    /// Reason the command failed, if applicable.
+    /// </summary>
+    public string? FailureReason { get; init; }
 
     /// <summary>
     /// Id of the fleet targeted by the command.

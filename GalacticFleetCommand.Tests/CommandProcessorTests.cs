@@ -37,7 +37,7 @@ public class CommandProcessorTests
         var command = new Command
         {
             Id = Guid.NewGuid().ToString(),
-            Type = "PrepareFleetCommand",
+            Type = CommandType.PrepareFleetCommand,
             Status = CommandStatus.Queued,
             Payload = new Dictionary<string, object?>
             {
@@ -99,7 +99,7 @@ public class CommandProcessorTests
         var command = new Command
         {
             Id = Guid.NewGuid().ToString(),
-            Type = "PrepareFleetCommand",
+            Type = CommandType.PrepareFleetCommand,
             Status = CommandStatus.Queued,
             Payload = new Dictionary<string, object?>
             {
@@ -156,7 +156,7 @@ public class CommandProcessorTests
         var command = new Command
         {
             Id = Guid.NewGuid().ToString(),
-            Type = "PrepareFleetCommand",
+            Type = CommandType.PrepareFleetCommand,
             Status = CommandStatus.Queued,
             Payload = new Dictionary<string, object?>
             {
@@ -217,7 +217,7 @@ public class CommandProcessorTests
         var command = new Command
         {
             Id = Guid.NewGuid().ToString(),
-            Type = "PrepareFleetCommand",
+            Type = CommandType.PrepareFleetCommand,
             Status = CommandStatus.Queued,
             Payload = new Dictionary<string, object?>
             {
@@ -286,7 +286,7 @@ public class CommandProcessorTests
         var command = new Command
         {
             Id = Guid.NewGuid().ToString(),
-            Type = "PrepareFleetCommand",
+            Type = CommandType.PrepareFleetCommand,
             Status = CommandStatus.Queued,
             Payload = new Dictionary<string, object?>
             {
@@ -343,7 +343,7 @@ public class CommandProcessorTests
         var command = new Command
         {
             Id = Guid.NewGuid().ToString(),
-            Type = "PrepareFleetCommand",
+            Type = CommandType.PrepareFleetCommand,
             Status = CommandStatus.Queued,
             Payload = new Dictionary<string, object?>
             {
@@ -416,7 +416,7 @@ public class CommandProcessorTests
             var command = new Command
             {
                 Id = Guid.NewGuid().ToString(),
-                Type = "PrepareFleetCommand",
+                Type = CommandType.PrepareFleetCommand,
                 Status = CommandStatus.Queued,
                 Payload = new Dictionary<string, object?>
                 {
@@ -462,5 +462,97 @@ public class CommandProcessorTests
         Assert.Equal(expectedReadyFleetCount * fuelRequiredPerFleet, updatedResourcePool.Reserved);
         Assert.Equal(expectedReadyFleetCount, readyFleetCount);
         Assert.Equal(commandCount - expectedReadyFleetCount, failedFleetCount);
+    }
+
+    [Fact]
+    public async Task ProcessAsync_DeployFleetCommand_TransitionsFleetToDeployed()
+    {
+        var commandRepo = new InMemoryCommandRepository();
+        var fleetRepo = new InMemoryFleetRepository();
+        var resourceRepo = new InMemoryResourcePoolRepository();
+
+        var fleet = new Fleet
+        {
+            Id = Guid.NewGuid().ToString(),
+            Name = "Test",
+            ShipCount = 1,
+            FuelRequired = 10
+        };
+
+        fleet.BeginPreparation();
+        fleet.MarkReady();
+
+        fleetRepo.Create(fleet);
+
+        var command = new Command
+        {
+            Id = Guid.NewGuid().ToString(),
+            Type = CommandType.DeployFleetCommand,
+            Status = CommandStatus.Queued,
+            Payload = new Dictionary<string, object?>
+            {
+                ["fleetId"] = fleet.Id
+            }
+        };
+
+        commandRepo.Create(command);
+
+        var processor = new CommandProcessor(
+            commandRepo,
+            fleetRepo,
+            resourceRepo,
+            NullLogger<CommandProcessor>.Instance);
+
+        await processor.ProcessAsync(command.Id, CancellationToken.None);
+
+        var updatedFleet = fleetRepo.GetOrThrow(fleet.Id);
+        var updatedCommand = commandRepo.GetOrThrow(command.Id);
+
+        Assert.Equal(FleetState.Deployed, updatedFleet.State);
+        Assert.Equal(CommandStatus.Succeeded, updatedCommand.Status);
+        Assert.Null(updatedCommand.FailureReason);
+    }
+
+    [Fact]
+    public async Task ProcessAsync_DeployFleetCommand_WhenNotReady_RecordsFailure()
+    {
+        var commandRepo = new InMemoryCommandRepository();
+        var fleetRepo = new InMemoryFleetRepository();
+        var resourceRepo = new InMemoryResourcePoolRepository();
+
+        var fleet = new Fleet
+        {
+            Id = Guid.NewGuid().ToString(),
+            Name = "Test",
+            ShipCount = 1,
+            FuelRequired = 10
+        };
+
+        fleetRepo.Create(fleet); // still Docked
+
+        var command = new Command
+        {
+            Id = Guid.NewGuid().ToString(),
+            Type = CommandType.DeployFleetCommand,
+            Status = CommandStatus.Queued,
+            Payload = new Dictionary<string, object?>
+            {
+                ["fleetId"] = fleet.Id
+            }
+        };
+
+        commandRepo.Create(command);
+
+        var processor = new CommandProcessor(
+            commandRepo,
+            fleetRepo,
+            resourceRepo,
+            NullLogger<CommandProcessor>.Instance);
+
+        await processor.ProcessAsync(command.Id, CancellationToken.None);
+
+        var updatedCommand = commandRepo.GetOrThrow(command.Id);
+
+        Assert.Equal(CommandStatus.Failed, updatedCommand.Status);
     }
 }

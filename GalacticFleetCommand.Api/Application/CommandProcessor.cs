@@ -5,7 +5,6 @@ namespace GalacticFleetCommand.Api.Application;
 
 public class CommandProcessor : ICommandProcessor
 {
-    private const string PrepareFleetCommandType = "PrepareFleetCommand";
     private const string FleetIdPayloadKey = "fleetId";
 
     private readonly ICommandRepository commandRepository;
@@ -35,10 +34,13 @@ public class CommandProcessor : ICommandProcessor
         {
             switch (command.Type)
             {
-                case PrepareFleetCommandType:
+                case CommandType.PrepareFleetCommand:
                     HandlePrepareFleet(command);
                     break;
 
+                case CommandType.DeployFleetCommand:
+                    HandleDeployFleet(command);
+                    break;
                 default:
                     throw new InvalidOperationException($"Unknown command type {command.Type}");
             }
@@ -106,6 +108,25 @@ public class CommandProcessor : ICommandProcessor
             else
                 current.FailPreparation();
 
+            return current;
+        });
+    }
+
+    private void HandleDeployFleet(Command command)
+    {
+        if (!command.Payload.TryGetValue(FleetIdPayloadKey, out var fleetIdValue))
+            throw new InvalidOperationException("Missing fleetId");
+
+        var fleetId = fleetIdValue?.ToString();
+
+        if (string.IsNullOrWhiteSpace(fleetId))
+            throw new InvalidOperationException("Invalid fleetId");
+
+        var fleet = fleetRepository.GetOrThrow(fleetId);
+
+        fleetRepository.Update(fleet.Id, fleet.Version, current =>
+        {
+            current.Deploy();
             return current;
         });
     }

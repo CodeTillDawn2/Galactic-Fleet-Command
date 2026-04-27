@@ -30,12 +30,12 @@ public class CommandController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Create(
-        CreatePrepareFleetCommandRequest request,
+        CreateCommandRequest request,
         CancellationToken cancellationToken)
     {
         try
         {
-            var command = await commandService.CreatePrepareFleetCommandAsync(request, cancellationToken);
+            var command = await commandService.CreateCommandAsync(request, cancellationToken);
 
             logger.LogInformation("Created command {CommandId} for fleet {FleetId}", command.Id, command.FleetId);
 

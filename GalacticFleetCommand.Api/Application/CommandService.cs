@@ -6,7 +6,6 @@ namespace GalacticFleetCommand.Api.Application;
 
 public class CommandService
 {
-    private const string PrepareFleetCommandType = "PrepareFleetCommand";
     private const string FleetIdPayloadKey = "fleetId";
 
     private readonly ICommandRepository commandRepository;
@@ -23,19 +22,22 @@ public class CommandService
         this.queue = queue;
     }
 
-    public async Task<CommandResponse> CreatePrepareFleetCommandAsync(
-        CreatePrepareFleetCommandRequest request,
+    public async Task<CommandResponse> CreateCommandAsync(
+        CreateCommandRequest request,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(request.FleetId))
             throw new ArgumentException("Fleet id is required");
+
+        if (!Enum.IsDefined(request.Type))
+            throw new ArgumentException("Command type is invalid");
 
         fleetRepository.GetOrThrow(request.FleetId);
 
         var command = new Command
         {
             Id = Guid.NewGuid().ToString(),
-            Type = PrepareFleetCommandType,
+            Type = request.Type,
             Status = CommandStatus.Queued,
             Payload = new Dictionary<string, object?>
             {

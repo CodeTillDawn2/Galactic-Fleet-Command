@@ -43,6 +43,12 @@ Insufficient resources are treated as an expected outcome rather than an error, 
 
 Removed duplicate PrepareFleetCommand tests to keep coverage focused in CommandProcessor tests, avoiding overlapping test suites.
 
+Extended command submission through the existing `/commands` endpoint rather than adding command-specific routes, keeping the API centered on command submission.
+
+Replaced command type strings with a `CommandType` enum so command creation, dispatch, and tests share one type-safe representation.
+
+Reused the existing command processing pipeline for deployment, avoiding a separate execution path for the new command type.
+
 ## Implementation Approach
 
 ### 1. Convert starter boilerplate to C# and extend the fleet model
