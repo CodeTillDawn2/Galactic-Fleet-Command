@@ -20,11 +20,12 @@ public class CommandController : ControllerBase
     }
 
     /// <summary>
-    /// Submits a prepare fleet command.
+    /// Submits a fleet command for asynchronous processing.
+    /// Supported command types:
+    /// - PrepareFleetCommand: reserves required resources and prepares the fleet
+    /// - DeployFleetCommand: deploys a ready fleet
+    /// - DockFleetCommand: docks a deployed fleet and releases reserved resources
     /// </summary>
-    /// <param name="request">Prepare fleet command request.</param>
-    /// <param name="cancellationToken">Request cancellation token.</param>
-    /// <returns>The queued command.</returns>
     [HttpPost]
     [ProducesResponseType(typeof(CommandResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
