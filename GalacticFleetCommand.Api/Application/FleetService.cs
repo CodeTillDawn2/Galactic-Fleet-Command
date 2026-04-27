@@ -23,8 +23,7 @@ public class FleetService
             Version = 1,
             Name = request.Name.Trim(),
             ShipCount = request.ShipCount,
-            FuelRequired = request.FuelRequired,
-            State = FleetState.Docked
+            FuelRequired = request.FuelRequired
         };
 
         context.Fleets.Create(fleet);

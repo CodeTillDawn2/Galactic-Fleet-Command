@@ -21,6 +21,10 @@ Fleet controller actions are kept thin and delegate business behavior to `FleetS
 
 Controllers are responsible for request/response mapping, while the service layer operates on domain and contract models without knowledge of HTTP semantics.
 
+Fleet lifecycle rules are enforced within the domain model so invalid state transitions cannot occur. State is not set directly; lifecycle changes are exposed through intention-revealing methods such as `BeginPreparation`, `MarkReady`, `FailPreparation`, and `Deploy`.
+
+Invalid transitions use a domain-specific exception that exposes the current state, attempted state, and expected current state. This keeps transition failures structured for tests and later command processing instead of relying on exception message parsing.
+
 ## Implementation Approach
 
 ### 1. Convert starter boilerplate to C# and extend the fleet model
@@ -57,14 +61,14 @@ Include validation, expected error responses, logging, and tests.
 
 ### 5. Enforce fleet lifecycle rules
 
-Centralize valid fleet transitions:
+Centralize valid fleet transitions in the domain model:
 
 Docked -> Preparing  
 Preparing -> Ready  
 Preparing -> FailedPreparation  
 Ready -> Deployed
 
-Handle invalid transitions explicitly.
+Handle invalid transitions explicitly with a domain-specific exception so future command handlers can map lifecycle failures to clear command failure reasons or API responses.
 
 ### 6. Add command controller
 

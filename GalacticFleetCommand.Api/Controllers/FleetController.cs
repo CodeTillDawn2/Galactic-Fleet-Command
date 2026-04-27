@@ -7,6 +7,7 @@ namespace GalacticFleetCommand.Api.Controllers;
 
 [ApiController]
 [Route("fleets")]
+[Produces("application/json")]
 public class FleetController : ControllerBase
 {
     private readonly FleetService fleetService;
@@ -21,6 +22,8 @@ public class FleetController : ControllerBase
     /// <summary>
     /// Creates a new fleet.
     /// </summary>
+    /// <param name="request">Fleet creation request.</param>
+    /// <returns>The newly created fleet.</returns>
     [HttpPost]
     [ProducesResponseType(typeof(FleetResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -43,6 +46,8 @@ public class FleetController : ControllerBase
     /// <summary>
     /// Retrieves a fleet by id.
     /// </summary>
+    /// <param name="id">Fleet id.</param>
+    /// <returns>The requested fleet.</returns>
     [HttpGet("{id}")]
     [ProducesResponseType(typeof(FleetResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -61,6 +66,9 @@ public class FleetController : ControllerBase
     /// <summary>
     /// Updates editable fleet properties.
     /// </summary>
+    /// <param name="id">Fleet id.</param>
+    /// <param name="request">Fleet update request.</param>
+    /// <returns>The updated fleet.</returns>
     [HttpPatch("{id}")]
     [ProducesResponseType(typeof(FleetResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
