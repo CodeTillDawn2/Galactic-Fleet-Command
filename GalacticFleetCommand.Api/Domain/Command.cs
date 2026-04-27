@@ -17,4 +17,6 @@ public class Command : IVersionedEntity
     public CommandStatus Status { get; set; }
 
     public Dictionary<string, object?> Payload { get; set; } = [];
+
+    public string? FailureReason { get; set; }
 }

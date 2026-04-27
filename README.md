@@ -31,6 +31,12 @@ Used a `Channel`-backed in-memory queue instead of a manually synchronized colle
 
 Introduced a command processor abstraction to prevent command-specific logic from accumulating in the background worker as additional command types are added.
 
+Command execution is handled in the processor rather than the service layer to align with the asynchronous execution model.
+
+Command outcomes are represented in state rather than exceptions, allowing failures to be observed without interrupting processing.
+
+Command status is treated as execution metadata and managed by the processor rather than the domain model.
+
 ## Implementation Approach
 
 ### 1. Convert starter boilerplate to C# and extend the fleet model
@@ -126,3 +132,8 @@ Resource reservation under concurrent conditions
 One end-to-end flow from API request to command processing to fleet state change  
 DeployFleetCommand success and failure cases  
 Fleet transition history recording
+
+
+## Future Improvements
+
+Expose command processing metrics such as queued count, success/failure counts, and processing duration through a lightweight metrics endpoint or OpenTelemetry.
