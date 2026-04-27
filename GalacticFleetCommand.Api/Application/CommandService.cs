@@ -11,14 +11,21 @@ public class CommandService
 
     private readonly ICommandRepository commandRepository;
     private readonly IFleetRepository fleetRepository;
+    private readonly IBackgroundCommandQueue queue;
 
-    public CommandService(ICommandRepository commandRepository, IFleetRepository fleetRepository)
+    public CommandService(
+        ICommandRepository commandRepository,
+        IFleetRepository fleetRepository,
+        IBackgroundCommandQueue queue)
     {
         this.commandRepository = commandRepository;
         this.fleetRepository = fleetRepository;
+        this.queue = queue;
     }
 
-    public CommandResponse CreatePrepareFleetCommand(CreatePrepareFleetCommandRequest request)
+    public async Task<CommandResponse> CreatePrepareFleetCommandAsync(
+        CreatePrepareFleetCommandRequest request,
+        CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(request.FleetId))
             throw new ArgumentException("Fleet id is required");
@@ -37,6 +44,8 @@ public class CommandService
         };
 
         commandRepository.Create(command);
+
+        await queue.QueueAsync(command.Id, cancellationToken);
 
         return Map(command);
     }

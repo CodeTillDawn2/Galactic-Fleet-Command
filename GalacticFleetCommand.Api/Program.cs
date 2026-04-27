@@ -24,8 +24,13 @@ builder.Services.AddSingleton<ICommandRepository>(provider =>
 builder.Services.AddSingleton<IResourcePoolRepository>(provider =>
     provider.GetRequiredService<PersistenceContext>().ResourcePools);
 
+builder.Services.AddSingleton<IBackgroundCommandQueue, InMemoryBackgroundCommandQueue>();
+builder.Services.AddScoped<ICommandProcessor, CommandProcessor>();
+
 builder.Services.AddScoped<FleetService>();
 builder.Services.AddScoped<CommandService>();
+
+builder.Services.AddHostedService<CommandBackgroundWorker>();
 
 var app = builder.Build();
 

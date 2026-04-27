@@ -25,6 +25,12 @@ Fleet lifecycle rules are enforced within the domain model so invalid state tran
 
 Invalid transitions use a domain-specific exception that exposes the current state, attempted state, and expected current state. This keeps transition failures structured for tests and later command processing instead of relying on exception message parsing.
 
+Introduced a queue/worker boundary before implementing command behavior to enforce separation between synchronous request handling and asynchronous execution.
+
+Used a `Channel`-backed in-memory queue instead of a manually synchronized collection (`Queue` + `SemaphoreSlim`), as the problem is producer/consumer coordination rather than mutual exclusion. This reduces complexity while correctly supporting multiple producers and a single consumer.
+
+Introduced a command processor abstraction to prevent command-specific logic from accumulating in the background worker as additional command types are added.
+
 ## Implementation Approach
 
 ### 1. Convert starter boilerplate to C# and extend the fleet model

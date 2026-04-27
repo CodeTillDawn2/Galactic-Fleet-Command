@@ -9,9 +9,10 @@ public class CommandServiceTests
 {
     private readonly InMemoryCommandRepository commandRepository = new();
     private readonly InMemoryFleetRepository fleetRepository = new();
+    private readonly InMemoryBackgroundCommandQueue queue = new();
 
     [Fact]
-    public void CreatePrepareFleetCommand_WithValidFleet_CreatesQueuedCommand()
+    public async Task CreatePrepareFleetCommand_WithValidFleet_CreatesQueuedCommand()
     {
         var fleet = new Fleet
         {
@@ -23,9 +24,9 @@ public class CommandServiceTests
 
         fleetRepository.Create(fleet);
 
-        var service = new CommandService(commandRepository, fleetRepository);
+        var service = new CommandService(commandRepository, fleetRepository, queue);
 
-        var response = service.CreatePrepareFleetCommand(new CreatePrepareFleetCommandRequest
+        var response = await service.CreatePrepareFleetCommandAsync(new CreatePrepareFleetCommandRequest
         {
             FleetId = fleet.Id
         });
@@ -37,12 +38,12 @@ public class CommandServiceTests
     }
 
     [Fact]
-    public void CreatePrepareFleetCommand_WithMissingFleetId_ThrowsArgumentException()
+    public async Task CreatePrepareFleetCommand_WithMissingFleetId_ThrowsArgumentException()
     {
-        var service = new CommandService(commandRepository, fleetRepository);
+        var service = new CommandService(commandRepository, fleetRepository, queue);
 
-        var exception = Assert.Throws<ArgumentException>(() =>
-            service.CreatePrepareFleetCommand(new CreatePrepareFleetCommandRequest
+        var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
+            service.CreatePrepareFleetCommandAsync(new CreatePrepareFleetCommandRequest
             {
                 FleetId = ""
             }));
@@ -51,19 +52,19 @@ public class CommandServiceTests
     }
 
     [Fact]
-    public void CreatePrepareFleetCommand_WithUnknownFleet_ThrowsNotFoundException()
+    public async Task CreatePrepareFleetCommand_WithUnknownFleet_ThrowsNotFoundException()
     {
-        var service = new CommandService(commandRepository, fleetRepository);
+        var service = new CommandService(commandRepository, fleetRepository, queue);
 
-        Assert.Throws<NotFoundException>(() =>
-            service.CreatePrepareFleetCommand(new CreatePrepareFleetCommandRequest
+        await Assert.ThrowsAsync<NotFoundException>(() =>
+            service.CreatePrepareFleetCommandAsync(new CreatePrepareFleetCommandRequest
             {
                 FleetId = "missing-fleet"
             }));
     }
 
     [Fact]
-    public void Get_WithExistingCommand_ReturnsCommand()
+    public async Task Get_WithExistingCommand_ReturnsCommand()
     {
         var fleet = new Fleet
         {
@@ -75,9 +76,9 @@ public class CommandServiceTests
 
         fleetRepository.Create(fleet);
 
-        var service = new CommandService(commandRepository, fleetRepository);
+        var service = new CommandService(commandRepository, fleetRepository, queue);
 
-        var created = service.CreatePrepareFleetCommand(new CreatePrepareFleetCommandRequest
+        var created = await service.CreatePrepareFleetCommandAsync(new CreatePrepareFleetCommandRequest
         {
             FleetId = fleet.Id
         });
@@ -93,7 +94,7 @@ public class CommandServiceTests
     [Fact]
     public void Get_WithUnknownCommand_ThrowsNotFoundException()
     {
-        var service = new CommandService(commandRepository, fleetRepository);
+        var service = new CommandService(commandRepository, fleetRepository, queue);
 
         Assert.Throws<NotFoundException>(() => service.Get("missing-command"));
     }

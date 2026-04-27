@@ -23,16 +23,19 @@ public class CommandController : ControllerBase
     /// Submits a prepare fleet command.
     /// </summary>
     /// <param name="request">Prepare fleet command request.</param>
+    /// <param name="cancellationToken">Request cancellation token.</param>
     /// <returns>The queued command.</returns>
     [HttpPost]
     [ProducesResponseType(typeof(CommandResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public IActionResult Create(CreatePrepareFleetCommandRequest request)
+    public async Task<IActionResult> Create(
+        CreatePrepareFleetCommandRequest request,
+        CancellationToken cancellationToken)
     {
         try
         {
-            var command = commandService.CreatePrepareFleetCommand(request);
+            var command = await commandService.CreatePrepareFleetCommandAsync(request, cancellationToken);
 
             logger.LogInformation("Created command {CommandId} for fleet {FleetId}", command.Id, command.FleetId);
 

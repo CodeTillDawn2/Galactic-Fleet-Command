@@ -12,9 +12,10 @@ public class CommandControllerTests
 {
     private readonly InMemoryCommandRepository commandRepository = new();
     private readonly InMemoryFleetRepository fleetRepository = new();
+    private readonly InMemoryBackgroundCommandQueue queue = new();
 
     [Fact]
-    public void Create_WithValidRequest_ReturnsCreatedCommand()
+    public async Task Create_WithValidRequest_ReturnsCreatedCommand()
     {
         var fleet = new Fleet
         {
@@ -28,10 +29,12 @@ public class CommandControllerTests
 
         var controller = CreateController();
 
-        var result = controller.Create(new CreatePrepareFleetCommandRequest
-        {
-            FleetId = fleet.Id
-        });
+        var result = await controller.Create(
+            new CreatePrepareFleetCommandRequest
+            {
+                FleetId = fleet.Id
+            },
+            CancellationToken.None);
 
         var createdResult = Assert.IsType<CreatedAtActionResult>(result);
         var response = Assert.IsType<CommandResponse>(createdResult.Value);
@@ -43,33 +46,37 @@ public class CommandControllerTests
     }
 
     [Fact]
-    public void Create_WithMissingFleetId_ReturnsBadRequest()
+    public async Task Create_WithMissingFleetId_ReturnsBadRequest()
     {
         var controller = CreateController();
 
-        var result = controller.Create(new CreatePrepareFleetCommandRequest
-        {
-            FleetId = ""
-        });
+        var result = await controller.Create(
+            new CreatePrepareFleetCommandRequest
+            {
+                FleetId = ""
+            },
+            CancellationToken.None);
 
         Assert.IsType<BadRequestObjectResult>(result);
     }
 
     [Fact]
-    public void Create_WithUnknownFleet_ReturnsNotFound()
+    public async Task Create_WithUnknownFleet_ReturnsNotFound()
     {
         var controller = CreateController();
 
-        var result = controller.Create(new CreatePrepareFleetCommandRequest
-        {
-            FleetId = "missing-fleet"
-        });
+        var result = await controller.Create(
+            new CreatePrepareFleetCommandRequest
+            {
+                FleetId = "missing-fleet"
+            },
+            CancellationToken.None);
 
         Assert.IsType<NotFoundResult>(result);
     }
 
     [Fact]
-    public void Get_WithExistingCommand_ReturnsOk()
+    public async Task Get_WithExistingCommand_ReturnsOk()
     {
         var fleet = new Fleet
         {
@@ -84,10 +91,12 @@ public class CommandControllerTests
         var controller = CreateController();
 
         var createResult = Assert.IsType<CreatedAtActionResult>(
-            controller.Create(new CreatePrepareFleetCommandRequest
-            {
-                FleetId = fleet.Id
-            }));
+            await controller.Create(
+                new CreatePrepareFleetCommandRequest
+                {
+                    FleetId = fleet.Id
+                },
+                CancellationToken.None));
 
         var createdCommand = Assert.IsType<CommandResponse>(createResult.Value);
 
@@ -112,7 +121,7 @@ public class CommandControllerTests
 
     private CommandController CreateController()
     {
-        var service = new CommandService(commandRepository, fleetRepository);
+        var service = new CommandService(commandRepository, fleetRepository, queue);
 
         return new CommandController(
             service,
