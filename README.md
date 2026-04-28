@@ -188,3 +188,7 @@ Fuel release is handled as part of command execution so resource accounting stay
 ## Future Improvements
 
 Expose command processing metrics such as queued count, success/failure counts, and processing duration through a lightweight metrics endpoint or OpenTelemetry.
+
+Create operations are not idempotent; server-generated ids mean repeated requests produce distinct resources. Idempotency keys can be introduced if retry-safe submission is required.
+
+Fleet names are non-unique display values; fleet identity is based solely on id. Additional uniqueness constraints or search capabilities could be added if needed.
