@@ -15,11 +15,3 @@ public class ResourcePool : IVersionedEntity
     public int Total { get; set; }
     public int Reserved { get; set; }
 }
-
-public class ResourceAvailability
-{
-    public ResourceType ResourceType { get; init; }
-    public int Total { get; init; }
-    public int Reserved { get; init; }
-    public int Available => Total - Reserved;
-}

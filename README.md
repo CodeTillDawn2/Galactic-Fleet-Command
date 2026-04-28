@@ -5,58 +5,6 @@ Take home test for Arrowhead
 
 C# was chosen for this implementation due to its strong support for web APIs, background processing, and in-memory data structures, which align well with the requirements of the assignment.
 
-The initial C# structure mirrors the provided TypeScript starter rather than introducing additional architectural layers up front.
-
-The fleet model was extended with `shipCount` and `fuelRequired` because those fields are required by the assignment but were not present in the starter boilerplate.
-
-Initially, Minimal APIs were used for their similarity to the provided starter, but the HTTP layer was refactored to controllers to provide a more conventional and scalable structure.
-
-Although the current assignment has a small API surface, the domain suggests room for additional commands, fleet operations, and resource workflows. Controllers help keep the HTTP layer organized as that surface expands.
-
-API contracts are separate from domain models so the HTTP surface can evolve independently from internal state and behavior. Clients can create or update fleet properties, while lifecycle state changes are handled through commands.
-
-Init accessors are used instead of set to ensure contract objects are only assigned during initialization, reinforcing immutability for request and response models.
-
-Fleet controller actions are kept thin and delegate business behavior to `FleetService`. This keeps HTTP concerns separate from fleet creation, validation, and update rules, making the behavior easier to test and less dependent on the web framework.
-
-Controllers are responsible for request/response mapping, while the service layer operates on domain and contract models without knowledge of HTTP semantics.
-
-Fleet lifecycle rules are enforced within the domain model so invalid state transitions cannot occur. State is not set directly; lifecycle changes are exposed through intention-revealing methods such as `BeginPreparation`, `MarkReady`, `FailPreparation`, and `Deploy`.
-
-Invalid transitions use a domain-specific exception that exposes the current state, attempted state, and expected current state. This keeps transition failures structured for tests and later command processing instead of relying on exception message parsing.
-
-Introduced a queue/worker boundary before implementing command behavior to enforce separation between synchronous request handling and asynchronous execution.
-
-Used a `Channel`-backed in-memory queue instead of a manually synchronized collection (`Queue` + `SemaphoreSlim`), as the problem is producer/consumer coordination rather than mutual exclusion. This reduces complexity while correctly supporting multiple producers and a single consumer.
-
-Introduced a command processor abstraction to prevent command-specific logic from accumulating in the background worker as additional command types are added.
-
-Command execution is handled in the processor rather than the service layer to align with the asynchronous execution model.
-
-Command outcomes are represented in state rather than exceptions, allowing failures to be observed without interrupting processing.
-
-Command status is treated as execution metadata and managed by the processor rather than the domain model.
-
-Resource reservation is performed within a single repository update to ensure availability checks and reservation occur atomically.
-
-Insufficient resources are treated as an expected outcome rather than an error, allowing command execution to complete with a failed preparation state.
-
-Removed duplicate PrepareFleetCommand tests to keep coverage focused in CommandProcessor tests, avoiding overlapping test suites.
-
-Extended command submission through the existing `/commands` endpoint rather than adding command-specific routes, keeping the API centered on command submission.
-
-Replaced command type strings with a `CommandType` enum so command creation, dispatch, and tests share one type-safe representation.
-
-Reused the existing command processing pipeline for deployment, avoiding a separate execution path for the new command type.
-
-Recorded transition history inside the Fleet aggregate so lifecycle changes remain tied to the state transitions that produce them.
-
-Exposed transition history through the existing fleet response rather than adding a separate endpoint, keeping lifecycle inspection part of the fleet resource.
-
-Added DockFleetCommand to complete the fleet lifecycle loop and release reserved resources when a deployed fleet returns to dock.
-
-Fuel release is handled as part of command execution so resource accounting stays tied to lifecycle changes.
-
 ## Implementation Approach
 
 ### 1. Convert starter boilerplate to C# and extend the fleet model
@@ -64,6 +12,12 @@ Fuel release is handled as part of command execution so resource accounting stay
 Translate the provided TypeScript starter into C#, preserving the same core structure and behavior.
 
 Extend the starter fleet model with `shipCount` and `fuelRequired`.
+
+#### Step 1 Design Notes
+
+The initial C# structure mirrors the provided TypeScript starter rather than introducing additional architectural layers up front.
+
+The fleet model was extended with `shipCount` and `fuelRequired` because those fields are required by the assignment but were not present in the starter boilerplate.
 
 ### 2. Refactor HTTP layer to controllers and add health endpoint test
 
@@ -77,9 +31,21 @@ Move existing "health" endpoint into a dedicated controller for consistency.
 
 Implement health endpoint test to verify it returns the expected response.
 
+#### Step 2 Design Notes
+
+Initially, Minimal APIs were used for their similarity to the provided starter, but the HTTP layer was refactored to controllers to provide a more conventional and scalable structure.
+
+Although the current assignment has a small API surface, the domain suggests room for additional commands, fleet operations, and resource workflows. Controllers help keep the HTTP layer organized as that surface expands.
+
 ### 3. Add API contracts
 
 Define request and response contracts for controller actions instead of exposing domain entities directly.
+
+#### Step 3 Design Notes
+
+API contracts are separate from domain models so the HTTP surface can evolve independently from internal state and behavior. Clients can create or update fleet properties, while lifecycle state changes are handled through commands.
+
+Init accessors are used instead of set to ensure contract objects are only assigned during initialization, reinforcing immutability for request and response models.
 
 ### 4. Add fleet controller
 
@@ -91,6 +57,12 @@ PATCH `/fleets/{id}`
 
 Include validation, expected error responses, logging, and tests.
 
+#### Step 4 Design Notes
+
+Fleet controller actions are kept thin and delegate business behavior to `FleetService`. This keeps HTTP concerns separate from fleet creation, validation, and update rules, making the behavior easier to test and less dependent on the web framework.
+
+Controllers are responsible for request/response mapping, while the service layer operates on domain and contract models without knowledge of HTTP semantics.
+
 ### 5. Enforce fleet lifecycle rules
 
 Centralize valid fleet transitions in the domain model:
@@ -101,6 +73,12 @@ Preparing -> FailedPreparation
 Ready -> Deployed
 
 Handle invalid transitions explicitly with a domain-specific exception so future command handlers can map lifecycle failures to clear command failure reasons or API responses.
+
+#### Step 5 Design Notes
+
+Fleet lifecycle rules are enforced within the domain model so invalid state transitions cannot occur. State is not set directly; lifecycle changes are exposed through intention-revealing methods such as `BeginPreparation`, `MarkReady`, `FailPreparation`, and `Deploy`.
+
+Invalid transitions use a domain-specific exception that exposes the current state, attempted state, and expected current state. This keeps transition failures structured for tests and later command processing instead of relying on exception message parsing.
 
 ### 6. Add command controller
 
@@ -117,6 +95,14 @@ Add an in-memory command queue and a single background worker.
 
 Treat API submission as the producer and the worker as the consumer, forming a simple event-driven processing model.
 
+#### Step 7 Design Notes
+
+Introduced a queue/worker boundary before implementing command behavior to enforce separation between synchronous request handling and asynchronous execution.
+
+Used a `Channel`-backed in-memory queue instead of a manually synchronized collection (`Queue` + `SemaphoreSlim`), as the problem is producer/consumer coordination rather than mutual exclusion. This reduces complexity while correctly supporting multiple producers and a single consumer.
+
+Introduced a command processor abstraction to prevent command-specific logic from accumulating in the background worker as additional command types are added.
+
 ### 8. Implement PrepareFleetCommand
 
 Implement the required workflow:
@@ -127,6 +113,14 @@ Preparing -> FailedPreparation on failed reservation
 
 Record command failure reasons when processing fails.
 
+#### Step 8 Design Notes
+
+Command execution is handled in the processor rather than the service layer to align with the asynchronous execution model.
+
+Command outcomes are represented in state rather than exceptions, allowing failures to be observed without interrupting processing.
+
+Command status is treated as execution metadata and managed by the processor rather than the domain model.
+
 ### 9. Add resource reservation behavior
 
 Use the shared fuel resource pool to reserve the fuel required by a fleet before it can become Ready.
@@ -135,13 +129,35 @@ Handle insufficient fuel as an expected outcome.
 
 Ensure the availability check and reservation update happen atomically so fuel cannot be over-allocated.
 
+#### Step 9 Design Notes
+
+Resource reservation is performed within a single repository update to ensure availability checks and reservation occur atomically.
+
+Insufficient resources are treated as an expected outcome rather than an error, allowing command execution to complete with a failed preparation state.
+
+Removed duplicate PrepareFleetCommand tests to keep coverage focused in CommandProcessor tests, avoiding overlapping test suites.
+
 ### 10. Add DeployFleetCommand
 
 Implement a deployment command that transitions fleets from Ready to Deployed.
 
+#### Step 10 Design Notes
+
+Extended command submission through the existing `/commands` endpoint rather than adding command-specific routes, keeping the API centered on command submission.
+
+Replaced command type strings with a `CommandType` enum so command creation, dispatch, and tests share one type-safe representation.
+
+Reused the existing command processing pipeline for deployment, avoiding a separate execution path for the new command type.
+
 ### 11. Add fleet transition history
 
 Record significant fleet state transitions so the lifecycle can be inspected after commands are processed.
+
+#### Step 11 Design Notes
+
+Recorded transition history inside the Fleet aggregate so lifecycle changes remain tied to the state transitions that produce them.
+
+Exposed transition history through the existing fleet response rather than adding a separate endpoint, keeping lifecycle inspection part of the fleet resource.
 
 ### 12. Add tests throughout implementation
 
@@ -153,7 +169,7 @@ One end-to-end flow from API request to command processing to fleet state change
 DeployFleetCommand success and failure cases  
 Fleet transition history recording
 
-13. Add DockFleetCommand
+### 13. Add DockFleetCommand
 
 Implement a docking command that transitions fleets from Deployed back to Docked and releases reserved fuel back to the shared resource pool.
 
@@ -163,6 +179,11 @@ Deployed -> Docked
 Return fleet fuel requirement to shared fuel pool
 Record transition history
 
+#### Step 13 Design Notes
+
+Added DockFleetCommand to complete the fleet lifecycle loop and release reserved resources when a deployed fleet returns to dock.
+
+Fuel release is handled as part of command execution so resource accounting stays tied to lifecycle changes.
 
 ## Future Improvements
 
