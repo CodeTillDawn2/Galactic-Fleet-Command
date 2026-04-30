@@ -790,4 +790,63 @@ public class CommandProcessorTests
         Assert.Equal(0, updatedResourcePool.Reserved);
     }
 
+    /// <summary>
+    /// Verifies that if a failure occurs after the fleet has transitioned to Preparing
+    /// (e.g., resource pool is missing or reservation step fails),
+    /// the system does not leave the fleet stuck in the Preparing state.
+    ///
+    /// Expected behavior:
+    /// - Fleet transitions from Docked → Preparing
+    /// - An exception occurs before resource reservation completes
+    /// - Compensation logic transitions fleet from Preparing → FailedPreparation
+    /// - Command is marked as Failed with a failure reason
+    ///
+    /// This ensures partial failures in the prepare workflow do not leave inconsistent state.
+    /// </summary>
+    [Fact]
+    public async Task PrepareFleetCommand_WhenFailureOccurs_DoesNotLeavePreparing()
+    {
+        var commandRepository = new InMemoryCommandRepository();
+        var fleetRepository = new InMemoryFleetRepository();
+        var resourcePoolRepository = new InMemoryResourcePoolRepository();
+
+        var fleet = new Fleet
+        {
+            Id = Guid.NewGuid().ToString(),
+            Name = "Test Fleet",
+            ShipCount = 1,
+            FuelRequired = 10
+        };
+
+        fleetRepository.Create(fleet);
+
+        var command = new Command
+        {
+            Id = Guid.NewGuid().ToString(),
+            Type = CommandType.PrepareFleetCommand,
+            Status = CommandStatus.Queued,
+            Payload = new Dictionary<string, object?>
+            {
+                ["fleetId"] = fleet.Id
+            }
+        };
+
+        commandRepository.Create(command);
+
+        var processor = new CommandProcessor(
+            commandRepository,
+            fleetRepository,
+            resourcePoolRepository,
+            NullLogger<CommandProcessor>.Instance);
+
+        await processor.ProcessAsync(command.Id, CancellationToken.None);
+
+        var updatedFleet = fleetRepository.GetOrThrow(fleet.Id);
+        var updatedCommand = commandRepository.GetOrThrow(command.Id);
+
+        Assert.Equal(FleetState.FailedPreparation, updatedFleet.State);
+        Assert.Equal(CommandStatus.Failed, updatedCommand.Status);
+        Assert.False(string.IsNullOrWhiteSpace(updatedCommand.FailureReason));
+    }
+
 }
