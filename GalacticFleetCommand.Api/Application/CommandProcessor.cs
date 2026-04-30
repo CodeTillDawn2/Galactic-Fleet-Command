@@ -75,43 +75,67 @@ public class CommandProcessor : ICommandProcessor
 
         var fleet = fleetRepository.GetOrThrow(fleetId);
 
+        var preparationStarted = false;
+
         fleetRepository.Update(fleet.Id, fleet.Version, current =>
         {
             current.BeginPreparation();
+            preparationStarted = true;
             return current;
         });
 
-        var preparingFleet = fleetRepository.GetOrThrow(fleet.Id);
-
-        var pool = resourcePoolRepository.GetByType(ResourceType.Fuel)
-            ?? throw new InvalidOperationException("Fuel pool not configured");
-
-        var reservationSucceeded = false;
-
-        resourcePoolRepository.Update(pool.Id, pool.Version, current =>
+        try
         {
-            var available = current.Total - current.Reserved;
+            var preparingFleet = fleetRepository.GetOrThrow(fleet.Id);
 
-            if (available >= preparingFleet.FuelRequired)
+            var pool = resourcePoolRepository.GetByType(ResourceType.Fuel)
+                ?? throw new InvalidOperationException("Fuel pool not configured");
+
+            var reservationSucceeded = false;
+
+            resourcePoolRepository.Update(pool.Id, pool.Version, current =>
             {
-                current.Reserved += preparingFleet.FuelRequired;
-                reservationSucceeded = true;
+                var available = current.Total - current.Reserved;
+
+                if (available >= preparingFleet.FuelRequired)
+                {
+                    current.Reserved += preparingFleet.FuelRequired;
+                    reservationSucceeded = true;
+                }
+
+                return current;
+            });
+
+            var updatedFleet = fleetRepository.GetOrThrow(preparingFleet.Id);
+
+            fleetRepository.Update(updatedFleet.Id, updatedFleet.Version, current =>
+            {
+                if (reservationSucceeded)
+                    current.MarkReady();
+                else
+                    current.FailPreparation();
+
+                return current;
+            });
+        }
+        catch
+        {
+            if (preparationStarted)
+            {
+                var currentFleet = fleetRepository.GetOrThrow(fleet.Id);
+
+                if (currentFleet.State == FleetState.Preparing)
+                {
+                    fleetRepository.Update(currentFleet.Id, currentFleet.Version, current =>
+                    {
+                        current.FailPreparation();
+                        return current;
+                    });
+                }
             }
 
-            return current;
-        });
-
-        var updatedFleet = fleetRepository.GetOrThrow(preparingFleet.Id);
-
-        fleetRepository.Update(updatedFleet.Id, updatedFleet.Version, current =>
-        {
-            if (reservationSucceeded)
-                current.MarkReady();
-            else
-                current.FailPreparation();
-
-            return current;
-        });
+            throw;
+        }
     }
 
     private void HandleDeployFleet(Command command)
